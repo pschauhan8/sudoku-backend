@@ -1,0 +1,36 @@
+service: sudoku-backend
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'prod'}
+  memorySize: 512
+  timeout: 15
+  environment:
+    NODE_ENV: production
+  httpApi:
+    cors: true
+
+functions:
+  api:
+    handler: dist/lambda.handler
+    events:
+      - httpApi:
+          method: ANY
+          path: /{proxy+}
+      - httpApi:
+          method: ANY
+          path: /
+
+package:
+  patterns:
+    - '!src/**'
+    - '!test/**'
+    - '!.git/**'
+    - '!node_modules/@types/**'
+    - 'dist/**'
+    - 'package.json'
+    - 'package-lock.json'

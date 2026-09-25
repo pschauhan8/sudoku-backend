@@ -1,0 +1,17 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Output & Build
+dist/
+build/
+.serverless/
+
+# Environment & IDE
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
