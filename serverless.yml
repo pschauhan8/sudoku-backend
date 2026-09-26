@@ -7,16 +7,34 @@ provider:
   runtime: nodejs20.x
   region: ${opt:region, 'us-east-1'}
   stage: ${opt:stage, 'prod'}
+  profile: ${opt:aws-profile, 'eternal'}
   memorySize: 512
   timeout: 15
   environment:
     NODE_ENV: production
+    USERS_TABLE: sudoku-users-${self:provider.stage}
+    LEADERBOARD_TABLE: sudoku-leaderboard-${self:provider.stage}
   httpApi:
     cors: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/sudoku-users-${self:provider.stage}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/sudoku-leaderboard-${self:provider.stage}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/sudoku-leaderboard-${self:provider.stage}/index/*
 
 functions:
   api:
-    handler: dist/lambda.handler
+    handler: dist/bundle/index.handler
     events:
       - httpApi:
           method: ANY
@@ -26,11 +44,37 @@ functions:
           path: /
 
 package:
+  individually: true
   patterns:
-    - '!src/**'
-    - '!test/**'
-    - '!.git/**'
-    - '!node_modules/@types/**'
-    - 'dist/**'
-    - 'package.json'
-    - 'package-lock.json'
+    - '!**'
+    - 'dist/bundle/**'
+
+resources:
+  Resources:
+    SudokuUsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: sudoku-users-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+
+    SudokuLeaderboardTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: sudoku-leaderboard-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: difficulty
+            AttributeType: S
+          - AttributeName: timeScore
+            AttributeType: N
+        KeySchema:
+          - AttributeName: difficulty
+            KeyType: HASH
+          - AttributeName: timeScore
+            KeyType: RANGE
